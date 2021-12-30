@@ -1,3 +1,7 @@
+'''
+data quality check for pandas dataframes
+'''
+
 def quality_check(table,empty='',show_correct=True):    
     try:
         from IPython.display import Markdown, display

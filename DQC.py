@@ -38,11 +38,11 @@ def quality_check(table,empty='',show_correct=True):
         tilte_already_is=False
         
         # if column have more than 1 data type
-        if len(table[col].map(type).value_counts())!=1:
+        if len(table[col].map(type).value_counts())!=1 and len(table[table[col].notna()][col].map(type).value_counts())!=0:
             column_title()
             tilte_already_is=True
             print_and_print_MD('More than one data type ', color='red')
-            type_table = pd.DataFrame(table[col].map(type).value_counts())
+            type_table = pd.DataFrame(table[table[col].notna()][col].map(type).value_counts())
             type_table.reset_index(level=0, inplace=True)
             type_table.columns = ['data type', 'row count']
             print(type_table) if jupyter_environment==False else display(type_table)                
@@ -51,34 +51,39 @@ def quality_check(table,empty='',show_correct=True):
         at_least_1_problem = False
         if pd.to_numeric(table[col], errors='coerce').notnull().all() and len(table[col]) * \
         unique_numbers_at_least>=len(table[col].unique()):
-            Q1 = table[col].quantile(0.25)
-            Q3 = table[col].quantile(0.75)
-            IQR = Q3 - Q1
-            result_under = table[table[col]< Q1 - 1.5 * IQR][col].unique()
-            result_over = table[table[col]> Q3 + 1.5 * IQR][col].unique()
-            if len(result_under)>0 or len(result_over)>0:
-                if tilte_already_is==False:
-                    column_title()
-                    tilte_already_is=True
-                print_and_print_MD('Anomalys in number values ', color='red')                
-            if len(result_under)>0:
-                if len(result_under)<=max_table_lenght:
-                    print_and_print_MD('- Strangly small values ' + str(list(set(result_under))), 0, color=None)
-                else:
-                    print_and_print_MD('- Too many problems found while using current settings: ' + str(len(result_under)) + ' rows. Results will not be displayed in table', 0, color=None)
-                at_least_1_problem = True
-            if len(result_over)>0:
-                if len(result_over)<=max_table_lenght:
-                    print_and_print_MD('- Strangly large values ' + str(list(set(result_over))), 0, color=None)
-                else:
-                    print_and_print_MD('- Too many problems found while using current settings: ' + str(len(result_over)) + ' rows. Results will not be displayed in table', 0, color=None)
-                at_least_1_problem = True
-            if at_least_1_problem==False and show_correct==True:
-                if tilte_already_is==False:
-                    column_title()
-                    tilte_already_is=True
-                print_and_print_MD('Anomalys in number values ', color='green')
-                print_and_print_MD('- Anomalys not found ', 0, color=None)                
+            try:
+                Q1 = table[col].quantile(0.25)
+                Q3 = table[col].quantile(0.75)
+                IQR = Q3 - Q1
+                result_under = table[table[col]< Q1 - 1.5 * IQR][col].unique()
+                result_over = table[table[col]> Q3 + 1.5 * IQR][col].unique()
+                if len(result_under)>0 or len(result_over)>0:
+                    if tilte_already_is==False:
+                        column_title()
+                        tilte_already_is=True
+                    print_and_print_MD('Anomalys in number values ', color='red')                
+                if len(result_under)>0:
+                    if len(result_under)<=max_table_lenght:
+                        print_and_print_MD('- Strangly small values ' + str(list(set(result_under))), 0, color=None)
+                    else:
+                        print_and_print_MD('- Too many problems found while using current settings: ' + str(len(result_under)) + ' rows. Results will not be displayed in table', 0, color=None)
+                    at_least_1_problem = True
+                if len(result_over)>0:
+                    if len(result_over)<=max_table_lenght:
+                        print_and_print_MD('- Strangly large values ' + str(list(set(result_over))), 0, color=None)
+                    else:
+                        print_and_print_MD('- Too many problems found while using current settings: ' + str(len(result_over)) + ' rows. Results will not be displayed in table', 0, color=None)
+                    at_least_1_problem = True
+                if at_least_1_problem==False and show_correct==True:
+                    if tilte_already_is==False:
+                        column_title()
+                        tilte_already_is=True
+                    print_and_print_MD('Anomalys in number values ', color='green')
+                    print_and_print_MD('- Anomalys not found ', 0, color=None)
+            except:
+                if show_correct==True:
+                    print_and_print_MD('Anomalys in number values ', color=None) 
+                    print_and_print_MD('- Checking this is not needed', 0, color=None)
         else:
             if show_correct==True:
                 if tilte_already_is==False:
@@ -175,7 +180,7 @@ def quality_check(table,empty='',show_correct=True):
             
         # duplicates test
         at_least_1_problem = False
-        if len(table[table[col].duplicated(keep=False)])/len(table[col]) < unique_values_at_least and len(table[table[col].duplicated(keep=False)])/len(table[col])!=0:
+        if len(table[col].unique())/len(table[col]) > unique_values_at_least and len(table[table[col].duplicated(keep=False)])/len(table[col])!=0 and len(table[table[col].duplicated(keep=False)])/len(table[col])!=1:
             if len(table[table[col].duplicated(keep=False)])!=0:
                 at_least_1_problem = True
                 if jupyter_environment==False:
@@ -205,7 +210,7 @@ def quality_check(table,empty='',show_correct=True):
                 print_and_print_MD('- Checking this is not needed', 0, color=None)
         
         # string lenght differences by rows
-        new_df = pd.DataFrame(table[col])
+        new_df = pd.DataFrame(table[table[col].notna()])
         new_df['symbol_count'] = table[col].astype(str).str.len()
         new_df = pd.DataFrame(new_df['symbol_count'].value_counts())
         new_df.reset_index(level=0, inplace=True)
@@ -247,7 +252,7 @@ def quality_check(table,empty='',show_correct=True):
                 print_and_print_MD('- Checking this is not needed', 0, color=None)
                 
         # string begining differences by rows
-        new_df = pd.DataFrame(table[col])        
+        new_df = pd.DataFrame(table[table[col].notna()])     
         new_df['string_begining'] = new_df[col].astype(str).str[:symbol_count]
         new_df = pd.DataFrame(new_df['string_begining'].value_counts())
         new_df.reset_index(level=0, inplace=True)

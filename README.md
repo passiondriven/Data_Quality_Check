@@ -1,5 +1,6 @@
 # Data_Quality_Check
-Script that automaticaly checks table data for posible errors or anomalys
+Script that automaticaly checks table data for posible errors or anomalys.
+It works by principle that most values are always correct. For example if columns with 100 values have only 2 duplicated values, then those 2 are probaly errors. Or if column have 96 number rows and 4 other type, then those are probably errors.
 
 ### this function checks for:
 *	if column have more than 1 data type
